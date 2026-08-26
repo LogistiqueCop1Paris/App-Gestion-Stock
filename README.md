@@ -375,7 +375,12 @@ src/components/
   données complet en dessous. Les couleurs du graphique viennent de la palette catégorielle
   validée par le skill dataviz (contraste et daltonisme vérifiés par
   `scripts/validate_palette.js`) plutôt que du corail de l'appli, pour rester distinctes du
-  reste de l'interface.
+  reste de l'interface. **Cliquer sur un mois** (son étiquette dans le graphique, ou sa ligne
+  dans le tableau — les deux sont équivalents, cliquer à nouveau désélectionne) ouvre un détail
+  en dessous : nombre de distributions, total et moyenne de paniers, puis la liste de chaque
+  distribution clôturée ce mois-là (date, lieu, paniers, qui a fait la sortie/la clôture,
+  commentaires). Tout vient des mêmes données déjà chargées, filtrées côté client — pas de
+  requête supplémentaire au clic.
 - **Commentaires** : un champ optionnel est disponible à chaque ajout/retrait/création de
   produit, sortie de distribution et clôture (reste). Il est stocké sur la ligne d'historique
   (`mouvements.commentaire`) et, pour les distributions, aussi sur `distributions.commentaire_sortie`

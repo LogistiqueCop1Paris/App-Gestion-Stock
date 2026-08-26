@@ -266,6 +266,12 @@ create index if not exists idx_distribution_lignes_distribution on public.distri
 -- SUPPRIMÉ (plus affiché dans le stock). Les infos nécessaires pour le
 -- recréer à l'identique (catégorie, source, péremption) sont alors capturées
 -- sur la ligne d'historique, pour que annuler_mouvement puisse le restituer.
+-- "create or replace" ne remplace une fonction que si sa liste de paramètres
+-- est identique ; comme p_commentaire a été ajouté après coup, l'ancienne
+-- version (sans ce paramètre) doit être supprimée explicitement, sinon
+-- Postgres garde les deux en parallèle et PostgREST ne sait plus laquelle
+-- appeler ("Could not choose the best candidate function").
+drop function if exists public.ajuster_quantite(uuid, integer, text, text);
 create or replace function public.ajuster_quantite(
   p_produit_id uuid,
   p_delta integer,
@@ -447,6 +453,9 @@ end;
 $$;
 
 -- Journalise la création d'un nouveau produit (appelée juste après l'insert côté client).
+-- cf. commentaire au-dessus d'ajuster_quantite : supprime l'ancienne signature
+-- (sans p_commentaire) pour éviter une ambiguïté de surcharge.
+drop function if exists public.journaliser_creation_produit(uuid);
 create or replace function public.journaliser_creation_produit(
   p_produit_id uuid,
   p_commentaire text default null
@@ -482,6 +491,9 @@ $$;
 -- Sortie de stock pour une distribution : décrémente chaque produit choisi et
 -- ouvre une "distribution" en cours, dont on enregistrera le reste plus tard.
 -- p_lignes : jsonb du type [{"produit_id": "...", "quantite": 3}, ...]
+-- cf. commentaire au-dessus d'ajuster_quantite : supprime l'ancienne signature
+-- (sans p_commentaire) pour éviter une ambiguïté de surcharge.
+drop function if exists public.creer_distribution(uuid, jsonb);
 create or replace function public.creer_distribution(
   p_stock_id uuid,
   p_lignes jsonb,
@@ -586,6 +598,11 @@ $$;
 
 -- Clôture une distribution en cours : enregistre ce qu'il reste (retour en stock)
 -- pour chaque ligne. p_retours : jsonb du type [{"ligne_id": "...", "quantite_retour": 2}, ...]
+-- cf. commentaire au-dessus d'ajuster_quantite : cette fonction a changé de
+-- signature deux fois (ajout de p_commentaire, puis p_nombre_paniers) —
+-- supprime les deux anciennes versions pour éviter une ambiguïté de surcharge.
+drop function if exists public.cloturer_distribution(uuid, jsonb);
+drop function if exists public.cloturer_distribution(uuid, jsonb, text);
 create or replace function public.cloturer_distribution(
   p_distribution_id uuid,
   p_retours jsonb,
