@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "gestion-stock-dev",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "export PATH=\"$HOME/.nvm/versions/node/v24.19.0/bin:$PATH\" && cd \"/home/sam/Documents/Claude/Gestion Stock cop1\" && npm run dev -- --host"],
+      "port": 5173
+    }
+  ]
+}
