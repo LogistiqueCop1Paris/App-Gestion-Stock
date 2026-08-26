@@ -213,12 +213,25 @@ create table if not exists public.distributions (
   utilisateur_retour_id uuid references public.profiles (id),
   utilisateur_retour_nom text,
   commentaire_sortie text,
-  commentaire_retour text
+  commentaire_retour text,
+  nombre_paniers integer check (nombre_paniers is null or nombre_paniers >= 0)
 );
 
 -- Pour les bases créées avant l'ajout des commentaires de distribution.
 alter table public.distributions add column if not exists commentaire_sortie text;
 alter table public.distributions add column if not exists commentaire_retour text;
+-- Pour les bases créées avant l'ajout du nombre de paniers distribués : une
+-- distribution clôturée doit obligatoirement avoir ce nombre renseigné (utilisé
+-- pour les statistiques de fréquentation), imposé au niveau de la base et pas
+-- seulement du formulaire. "not valid" : la règle s'applique à partir de
+-- maintenant sans invalider les distributions déjà clôturées avant son ajout.
+alter table public.distributions add column if not exists nombre_paniers integer;
+alter table public.distributions drop constraint if exists distributions_nombre_paniers_check;
+alter table public.distributions add constraint distributions_nombre_paniers_check
+  check (nombre_paniers is null or nombre_paniers >= 0);
+alter table public.distributions drop constraint if exists distributions_paniers_si_terminee;
+alter table public.distributions add constraint distributions_paniers_si_terminee
+  check (statut <> 'terminee' or nombre_paniers is not null) not valid;
 
 create table if not exists public.distribution_lignes (
   id uuid primary key default gen_random_uuid(),
@@ -576,7 +589,8 @@ $$;
 create or replace function public.cloturer_distribution(
   p_distribution_id uuid,
   p_retours jsonb,
-  p_commentaire text default null
+  p_commentaire text default null,
+  p_nombre_paniers integer default null
 )
 returns void
 language plpgsql
@@ -593,6 +607,10 @@ declare
   v_qte integer;
   v_produit_id_final uuid;
 begin
+  if p_nombre_paniers is null or p_nombre_paniers < 0 then
+    raise exception 'le nombre de paniers distribués est obligatoire pour clôturer une distribution';
+  end if;
+
   select nom, prenom into v_nom, v_prenom from public.profiles where id = auth.uid();
   if v_nom is null then
     raise exception 'profil utilisateur introuvable';
@@ -674,7 +692,8 @@ begin
         date_retour = now(),
         utilisateur_retour_id = auth.uid(),
         utilisateur_retour_nom = v_nom || ' ' || v_prenom,
-        commentaire_retour = nullif(trim(p_commentaire), '')
+        commentaire_retour = nullif(trim(p_commentaire), ''),
+        nombre_paniers = p_nombre_paniers
     where id = p_distribution_id;
 end;
 $$;

@@ -25,6 +25,9 @@ export default function Navbar() {
         <NavLink to="/historique" className={({ isActive }) => (isActive ? 'active' : '')}>
           Historique
         </NavLink>
+        <NavLink to="/statistiques" className={({ isActive }) => (isActive ? 'active' : '')}>
+          Statistiques
+        </NavLink>
         {peutGererUtilisateurs(profile?.role) && (
           <NavLink to="/utilisateurs" className={({ isActive }) => (isActive ? 'active' : '')}>
             Utilisateurs

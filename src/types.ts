@@ -73,6 +73,7 @@ export interface Distribution {
   utilisateur_retour_nom: string | null
   commentaire_sortie: string | null
   commentaire_retour: string | null
+  nombre_paniers: number | null
 }
 
 export interface DistributionLigne {

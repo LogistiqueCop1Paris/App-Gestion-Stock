@@ -282,6 +282,7 @@ src/pages/
   StockPage.tsx                  Vue d'un stock : catégories, produits, recherche, actions, renommage, suppression
   HistoryPage.tsx                Historique de tous les mouvements, filtrable, annulation
   UsersPage.tsx                  Édition, rôles, mots de passe et suppression des comptes (Respo log uniquement)
+  StatsPage.tsx                  Fréquentation des distributions (paniers/mois/lieu), graphique + tableau
 src/roles.ts                     Libellés, descriptions et helpers de pouvoirs par rôle
 src/components/
   Navbar.tsx                     Barre de navigation + utilisateur connecté
@@ -365,6 +366,16 @@ src/components/
   action est irréversible et ne passe pas par la logique de restauration utilisée pour les
   quantités à 0 (qui, elle, ne s'applique qu'aux mouvements individuels, pas à la suppression
   d'un stock entier).
+- **Statistiques de fréquentation** (onglet Statistiques, ouvert à tous les rôles — lecture
+  seule) : à chaque clôture de distribution (`cloturer_distribution`), le nombre de paniers
+  distribués est **obligatoire** — imposé à la fois côté formulaire et par une contrainte SQL
+  (`distributions_paniers_si_terminee` : une distribution `terminee` doit avoir
+  `nombre_paniers` renseigné). `StatsPage.tsx` regroupe ces chiffres par mois et par stock pour
+  une année choisie, et affiche un graphique en lignes (une couleur par lieu) plus le tableau de
+  données complet en dessous. Les couleurs du graphique viennent de la palette catégorielle
+  validée par le skill dataviz (contraste et daltonisme vérifiés par
+  `scripts/validate_palette.js`) plutôt que du corail de l'appli, pour rester distinctes du
+  reste de l'interface.
 - **Commentaires** : un champ optionnel est disponible à chaque ajout/retrait/création de
   produit, sortie de distribution et clôture (reste). Il est stocké sur la ligne d'historique
   (`mouvements.commentaire`) et, pour les distributions, aussi sur `distributions.commentaire_sortie`

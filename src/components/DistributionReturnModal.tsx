@@ -14,6 +14,7 @@ export default function DistributionReturnModal({
 }) {
   const [lignes, setLignes] = useState<DistributionLigne[]>([])
   const [restes, setRestes] = useState<Record<string, string>>({})
+  const [nombrePaniers, setNombrePaniers] = useState('')
   const [commentaire, setCommentaire] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -35,6 +36,12 @@ export default function DistributionReturnModal({
     e.preventDefault()
     setError(null)
 
+    const paniers = parseInt(nombrePaniers, 10)
+    if (!Number.isInteger(paniers) || paniers < 0) {
+      setError('Indique le nombre de paniers distribués (0 si aucun).')
+      return
+    }
+
     const retours: { ligne_id: string; quantite_retour: number }[] = []
     for (const l of lignes) {
       const raw = restes[l.id] ?? '0'
@@ -55,6 +62,7 @@ export default function DistributionReturnModal({
       p_distribution_id: distribution.id,
       p_retours: retours,
       p_commentaire: commentaire.trim() || null,
+      p_nombre_paniers: paniers,
     })
     setSaving(false)
     if (rpcError) {
@@ -97,6 +105,18 @@ export default function DistributionReturnModal({
               />
             </div>
           ))}
+
+          <label>
+            Nombre de paniers distribués
+            <input
+              type="number"
+              min={0}
+              step={1}
+              value={nombrePaniers}
+              onChange={(e) => setNombrePaniers(e.target.value)}
+              required
+            />
+          </label>
 
           <label>
             Commentaire (optionnel)

@@ -11,6 +11,7 @@ import StocksListPage from './pages/StocksListPage'
 import StockPage from './pages/StockPage'
 import HistoryPage from './pages/HistoryPage'
 import UsersPage from './pages/UsersPage'
+import StatsPage from './pages/StatsPage'
 
 function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -55,6 +56,16 @@ export default function App() {
             <ProtectedRoute>
               <AppLayout>
                 <HistoryPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/statistiques"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <StatsPage />
               </AppLayout>
             </ProtectedRoute>
           }
