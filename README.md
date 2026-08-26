@@ -46,8 +46,8 @@ interface et côté base via les policies RLS et les fonctions SQL, pas seulemen
 
 | Rôle | Pouvoirs |
 |---|---|
-| **Respo log** | Tout faire et tout voir : changer le rôle de n'importe quel compte, **supprimer un compte**, **annuler un mouvement** depuis l'historique, renommer stocks/catégories/produits. |
-| **Respo autres** | Tout faire sauf transférer un produit entre stocks. Accès à l'historique. Peut renommer stocks/catégories/produits. |
+| **Respo log** | Tout faire et tout voir : changer le rôle de n'importe quel compte, **éditer nom/prénom/email et le mot de passe d'un compte**, **supprimer un compte**, **supprimer un stock** (avec tout ce qu'il contient), **annuler un mouvement** depuis l'historique, renommer stocks/catégories/produits. |
+| **Respo autres** | Tout faire sauf transférer un produit entre stocks ou supprimer un stock. Accès à l'historique. Peut renommer stocks/catégories/produits, et supprimer des catégories. |
 | **VSC** | Uniquement faire des sorties de stock pour une distribution, et enregistrer le reste ensuite. Accès à l'historique en lecture. |
 
 Tout nouveau compte est créé en `vsc` par défaut (le rôle le plus restreint). Un compte
@@ -73,29 +73,83 @@ where id = (select id from auth.users where email = 'ton-email@exemple.com');
 > Utilisateurs pour repasser en `respo_autres` les comptes qui géraient déjà les stocks au
 > quotidien.
 
-### Activer la suppression de comptes (Edge Function)
+### Activer les actions admin sur les comptes (Edge Functions)
 
-Supprimer un compte utilisateur est une opération sensible que seule une clé secrète
-(`service_role`) peut faire — cette clé ne doit **jamais** être mise dans le frontend
-(`.env`), donc cette action passe par une petite fonction serveur ("Edge Function") fournie
-dans [`supabase/functions/delete-user/index.ts`](supabase/functions/delete-user/index.ts).
-Elle vérifie elle-même que l'appelant est bien Respo log avant de supprimer quoi que ce soit.
+Certaines actions sur les comptes (les supprimer, changer leur mot de passe ou leur email) sont
+sensibles et ne peuvent être faites qu'avec une clé secrète (`service_role`) — cette clé ne doit
+**jamais** être mise dans le frontend (`.env`), donc chacune de ces actions passe par une petite
+fonction serveur ("Edge Function"). Chacune vérifie elle-même que l'appelant est bien Respo log
+avant d'agir.
 
-À déployer une seule fois, directement depuis le dashboard Supabase (pas besoin d'installer
-d'outil en local) :
+Trois fonctions à déployer une seule fois chacune, directement depuis le dashboard Supabase
+(pas besoin d'installer d'outil en local — voir plus bas si tu préfères la CLI) :
+
+| Fonction | Fichier | Utilisée par |
+|---|---|---|
+| `delete-user` | [`supabase/functions/delete-user/index.ts`](supabase/functions/delete-user/index.ts) | Bouton "Supprimer" (Utilisateurs) |
+| `admin-set-password` | [`supabase/functions/admin-set-password/index.ts`](supabase/functions/admin-set-password/index.ts) | Bouton "🔑 Mot de passe" (Utilisateurs) |
+| `admin-update-email` | [`supabase/functions/admin-update-email/index.ts`](supabase/functions/admin-update-email/index.ts) | Bouton "✎ Éditer" (Utilisateurs), champ email |
+
+Pour chacune :
 
 1. Va dans **Edge Functions** (menu de gauche) > **Create a function** (ou **Deploy a new function**).
-2. Nomme-la exactement `delete-user`.
-3. Colle le contenu de `supabase/functions/delete-user/index.ts` dans l'éditeur, puis **Deploy**.
+2. Nomme-la exactement comme dans le tableau ci-dessus (respecte la casse et les tirets).
+3. Colle le contenu du fichier correspondant dans l'éditeur, puis **Deploy**.
 
 Supabase fournit automatiquement `SUPABASE_URL`, `SUPABASE_ANON_KEY` et
-`SUPABASE_SERVICE_ROLE_KEY` à toute Edge Function : rien à configurer en plus. Une fois
-déployée, le bouton "Supprimer" de l'onglet Utilisateurs fonctionne.
+`SUPABASE_SERVICE_ROLE_KEY` à toute Edge Function : rien à configurer en plus.
 
-### Autoriser les liens de réinitialisation de mot de passe
+> Alternative CLI (utile seulement si tu comptes retoucher ces fonctions souvent) :
+> `supabase login`, puis `supabase link --project-ref <ton-id-projet>`, puis
+> `supabase functions deploy` (déploie les trois d'un coup depuis `supabase/functions/`).
 
-La page "Mot de passe oublié" envoie un email avec un lien de réinitialisation, mais Supabase
-n'accepte de rediriger que vers des adresses explicitement autorisées :
+### Emails de confirmation / réinitialisation — ou s'en passer entièrement
+
+⚠️ **Le service d'email intégré à Supabase (utilisé par défaut, sans configuration) n'envoie
+qu'aux adresses membres de ton organisation Supabase** (les collaborateurs du projet sur
+supabase.com, pas les comptes de l'appli) — toute autre adresse échoue silencieusement, aucun
+email n'arrive. Il est aussi limité à 2 emails/heure. C'est la cause la plus probable si un
+bénévole ne reçoit ni email de confirmation à l'inscription ni email de réinitialisation de mot
+de passe.
+
+Deux options pour une petite asso :
+
+**Option A — se passer d'email (recommandé, le plus simple)**
+
+C'est cohérent avec le fonctionnement de l'appli : les comptes sont gérés en interne, pas du
+grand public.
+
+1. Dans Supabase, **Authentication > Providers > Email**, désactive **"Confirm email"** — un
+   compte créé (inscription ou création directe) devient utilisable immédiatement, sans email.
+2. Déploie l'Edge Function `admin-set-password` (même procédure que `delete-user` plus haut :
+   **Edge Functions > Create a function**, nomme-la exactement `admin-set-password`, colle le
+   contenu de
+   [`supabase/functions/admin-set-password/index.ts`](supabase/functions/admin-set-password/index.ts),
+   **Deploy**). Elle permet à un Respo log de définir directement le mot de passe de n'importe
+   quel compte depuis l'onglet **Utilisateurs** de l'appli (bouton "🔑 Mot de passe"), sans
+   passer par un email — utile aussi bien pour débloquer un compte que pour un mot de passe
+   oublié.
+3. Une fois ça en place, tu peux laisser la page "Mot de passe oublié" de côté (elle continuera
+   à échouer silencieusement sans SMTP configuré, ce qui est sans conséquence si personne ne
+   l'utilise) et retirer/ignorer le lien "Mot de passe oublié ?" sur l'écran de connexion si tu
+   veux éviter la confusion.
+
+**Option B — configurer un vrai SMTP**, si tu préfères garder le flux email standard (email de
+confirmation à l'inscription, "Mot de passe oublié" fonctionnel). Dans
+**Project Settings > Authentication > SMTP Settings** :
+
+- **Gmail** (gratuit, 500 emails/jour) — nécessite la validation en 2 étapes sur le compte
+  Gmail : active-la, puis crée un "mot de passe d'application" sur
+  [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords). Renseigne
+  Host `smtp.gmail.com`, Port `587`, Username = l'adresse Gmail, Password = le mot de passe
+  d'application (pas le vrai mot de passe Gmail), Sender email = la même adresse.
+- Si la validation en 2 étapes n'est pas activable sur le compte (compte géré par un
+  administrateur, restriction organisationnelle...), utilise plutôt un service dédié comme
+  **Brevo** (gratuit, 300 emails/jour, pas de 2FA requise) : crée un compte sur
+  [app.brevo.com](https://app.brevo.com), récupère les identifiants SMTP dans
+  **Settings > SMTP & API > SMTP**, et renseigne-les côté Supabase de la même façon.
+
+Si tu gardes le flux email (Option B), pense aussi à autoriser les liens de réinitialisation :
 
 1. Va dans **Authentication > URL Configuration**.
 2. Ajoute dans **Redirect URLs** : `http://localhost:5173/reinitialiser-mot-de-passe` (pour tes
@@ -103,11 +157,6 @@ n'accepte de rediriger que vers des adresses explicitement autorisées :
    (ex. `https://gestion-stock-cop1.vercel.app/reinitialiser-mot-de-passe`).
 
 Sans ça, le lien reçu par email renverra une erreur au clic.
-
-> Le service d'email intégré à Supabase (utilisé par défaut, sans configuration) est limité en
-> volume — largement suffisant pour tester, mais pensé pour être remplacé par un fournisseur SMTP
-> (ex. un compte Gmail, Brevo, Resend…) une fois l'appli utilisée par plusieurs bénévoles :
-> **Project Settings > Auth > SMTP Settings**.
 
 ### Désactiver les inscriptions publiques (recommandé pour une asso)
 
@@ -166,24 +215,61 @@ git push -u origin main
 Le code est alors sauvegardé sur GitHub, indépendamment de ta machine — récupérable depuis
 n'importe où avec `git clone`.
 
-### 3b. Déployer sur Vercel ou Netlify (gratuit)
+### 3b. Déployer sur Vercel (gratuit) — pas à pas détaillé
 
-1. Sur [Vercel](https://vercel.com) ou [Netlify](https://netlify.com) : "New project" > importe
-   le dépôt GitHub créé ci-dessus.
-2. Dans les variables d'environnement du projet, ajoute `VITE_SUPABASE_URL` et
-   `VITE_SUPABASE_ANON_KEY` (les mêmes que dans `.env`).
-3. Build command : `npm run build` — Output directory : `dist` (Vercel/Netlify le détectent
-   automatiquement pour un projet Vite).
-4. Déploie : tu obtiens une URL publique (ex. `gestion-stock-cop1.vercel.app`) accessible
-   depuis n'importe quel navigateur, y compris sur mobile — et qui ne dépend plus de ton PC.
+Si tu as déjà créé le projet sur Vercel en important le dépôt GitHub, reprends à l'étape 2.
 
-Chaque futur `git push` redéploie automatiquement la nouvelle version.
+1. **Importer le projet** (si pas encore fait) : sur [vercel.com](https://vercel.com), une fois
+   connecté avec ton compte GitHub, clique **Add New…** (en haut à droite) **> Project**. Ton
+   dépôt GitHub apparaît dans la liste — clique **Import** à côté de son nom. Vercel détecte
+   automatiquement que c'est un projet Vite (Framework Preset : "Vite") ; pas besoin de changer
+   Build Command (`npm run build`) ni Output Directory (`dist`), laisse les valeurs par défaut.
+
+2. **Ajouter les variables d'environnement** — c'est l'étape qui manque le plus souvent :
+   - Si tu es encore sur l'écran d'import (avant de cliquer "Deploy") : déroule la section
+     **Environment Variables**, ajoute une ligne avec `Name = VITE_SUPABASE_URL` et
+     `Value = https://xxxx.supabase.co`, puis une deuxième avec `Name = VITE_SUPABASE_ANON_KEY`
+     et la clé correspondante (les mêmes valeurs que dans ton `.env` local).
+   - Si le projet est **déjà créé** (ton cas) : va sur la page du projet > onglet **Settings**
+     (en haut) > **Environment Variables** dans le menu de gauche. Ajoute les deux variables
+     une par une (Name + Value), coche les 3 environnements proposés (Production, Preview,
+     Development) sauf raison particulière de ne pas le faire, puis **Save**.
+
+3. **Redéployer** — ⚠️ point important : ajouter une variable d'environnement à un projet déjà
+   créé ne redéploie pas automatiquement. Va dans l'onglet **Deployments**, ouvre le menu **⋯**
+   (trois points) à côté du déploiement le plus récent, puis **Redeploy**. Sans ça, l'appli
+   déployée ne verra pas les nouvelles variables et l'écran restera bloqué sur une erreur de
+   connexion à Supabase.
+
+4. **Récupérer l'URL publique** — en haut de la page du projet, sous le nom du projet, l'URL
+   ressemble à `nom-du-projet.vercel.app`. Elle est aussi cliquable directement depuis la carte
+   du déploiement "Production" dans l'onglet Deployments.
+
+5. **Mettre à jour Supabase avec cette URL** : si tu as activé la réinitialisation de mot de
+   passe (voir plus haut), retourne dans Supabase > **Authentication > URL Configuration** et
+   ajoute `https://nom-du-projet.vercel.app/reinitialiser-mot-de-passe` dans **Redirect URLs** —
+   sinon les liens de réinitialisation ne fonctionneront que sur `localhost`.
+
+6. **Vérifier que ça marche** : ouvre l'URL, essaie de te connecter. Si tu vois une page blanche
+   ou une erreur, va dans **Deployments** > clique sur le déploiement > onglet **Build Logs**
+   (erreur de build) ou ouvre la console du navigateur avec F12 (erreur au chargement, souvent
+   liée aux variables d'environnement mal renseignées).
+
+Chaque futur `git push` sur la branche `main` redéploie automatiquement la nouvelle version —
+c'est le seul cas où le redéploiement est automatique ; changer une variable d'environnement ne
+l'est pas (retour à l'étape 3).
+
+> Netlify fonctionne sur le même principe (import du dépôt, build command `npm run build`,
+> output `dist`, variables d'environnement dans **Site configuration > Environment variables**,
+> puis **Trigger deploy** après ajout de variables) si tu préfères cette plateforme.
 
 ## Structure du projet
 
 ```
 supabase/schema.sql              Schéma complet de la base (tables, RLS, fonctions métier)
-supabase/functions/delete-user   Edge Function : suppression définitive d'un compte
+supabase/functions/delete-user         Edge Function : suppression définitive d'un compte
+supabase/functions/admin-set-password  Edge Function : définir un mot de passe sans email
+supabase/functions/admin-update-email  Edge Function : changer l'email de connexion d'un compte
 src/lib/supabaseClient.ts        Client Supabase (lit les variables d'env)
 src/lib/sources.ts                Résolution/création d'une source (menu "existant ou nouveau")
 src/auth/AuthContext.tsx         Session + profil utilisateur courant
@@ -193,9 +279,9 @@ src/pages/
   ForgotPasswordPage.tsx         Demande d'un email de réinitialisation
   ResetPasswordPage.tsx          Choix d'un nouveau mot de passe (via le lien reçu par email)
   StocksListPage.tsx             Liste des stocks (lieux), création d'un nouveau stock
-  StockPage.tsx                  Vue d'un stock : catégories, produits, recherche, actions, renommage
+  StockPage.tsx                  Vue d'un stock : catégories, produits, recherche, actions, renommage, suppression
   HistoryPage.tsx                Historique de tous les mouvements, filtrable, annulation
-  UsersPage.tsx                  Gestion des rôles et suppression des comptes (Respo log uniquement)
+  UsersPage.tsx                  Édition, rôles, mots de passe et suppression des comptes (Respo log uniquement)
 src/roles.ts                     Libellés, descriptions et helpers de pouvoirs par rôle
 src/components/
   Navbar.tsx                     Barre de navigation + utilisateur connecté
@@ -207,6 +293,8 @@ src/components/
   DistributionModal.tsx          Sortie de stock pour une distribution (multi-produits)
   DistributionReturnModal.tsx    Enregistrement du reste après une distribution
   RenameModal.tsx                Renommer un stock, une catégorie ou un produit
+  SetPasswordModal.tsx           Définir le mot de passe d'un compte sans email (Respo log)
+  EditProfileModal.tsx           Éditer nom/prénom/email d'un compte (Respo log)
   Modal.tsx                      Fenêtre modale générique
 ```
 
@@ -262,8 +350,21 @@ src/components/
   corruption : si le produit n'a plus assez de quantité pour être décrémenté (ex. une
   distribution a pris le stock entre-temps), la fonction refuse avec un message clair plutôt que
   de passer en négatif.
-- **Supprimer un compte** (Respo log uniquement) passe par l'Edge Function `delete-user` — voir
-  "Activer la suppression de comptes" plus haut pour le déploiement, obligatoire une fois.
+- **Supprimer un compte**, **définir un mot de passe sans email** et **changer l'email de
+  connexion d'un compte** (Respo log uniquement, boutons sur l'onglet Utilisateurs) passent
+  chacun par leur propre Edge Function (`delete-user`, `admin-set-password`,
+  `admin-update-email`) — même principe : clé `service_role`, vérification du rôle de
+  l'appelant côté serveur. Voir "Activer les actions admin sur les comptes" plus haut pour le
+  déploiement, obligatoire une fois chacune. Changer l'email met à jour à la fois le compte
+  Supabase Auth (utilisé pour se connecter) et `profiles.email` (l'affichage) — sans déclencher
+  de flux de confirmation, cohérent avec le fonctionnement "sans email" de l'appli.
+- **Supprimer un stock** (Respo log uniquement, contrairement au renommage et à la suppression
+  de catégorie qui restent ouverts à Respo autres) affiche d'abord une confirmation détaillant
+  concrètement ce qui sera perdu (nombre de catégories, de produits, quantité totale) avant de
+  supprimer — les catégories et produits du stock sont supprimés en cascade côté base, cette
+  action est irréversible et ne passe pas par la logique de restauration utilisée pour les
+  quantités à 0 (qui, elle, ne s'applique qu'aux mouvements individuels, pas à la suppression
+  d'un stock entier).
 - **Commentaires** : un champ optionnel est disponible à chaque ajout/retrait/création de
   produit, sortie de distribution et clôture (reste). Il est stocké sur la ligne d'historique
   (`mouvements.commentaire`) et, pour les distributions, aussi sur `distributions.commentaire_sortie`

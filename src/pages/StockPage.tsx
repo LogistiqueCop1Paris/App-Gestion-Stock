@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../auth/AuthContext'
-import { peutModifierStock, peutTransferer } from '../roles'
+import { peutModifierStock, peutSupprimerStock, peutTransferer } from '../roles'
 import type { Categorie, Distribution, Produit, SourceOption, Stock } from '../types'
 import AddProductModal from '../components/AddProductModal'
 import AdjustQuantityModal from '../components/AdjustQuantityModal'
@@ -19,9 +19,11 @@ type RenameTarget = { table: 'stocks' | 'categories' | 'produits'; id: string; c
 
 export default function StockPage() {
   const { stockId } = useParams<{ stockId: string }>()
+  const navigate = useNavigate()
   const { profile } = useAuth()
   const peutModifier = peutModifierStock(profile?.role)
   const peutTransf = peutTransferer(profile?.role)
+  const peutSupprimer = peutSupprimerStock(profile?.role)
   const [stock, setStock] = useState<Stock | null>(null)
   const [categories, setCategories] = useState<Categorie[]>([])
   const [produits, setProduits] = useState<Produit[]>([])
@@ -40,6 +42,7 @@ export default function StockPage() {
   const [renameTarget, setRenameTarget] = useState<RenameTarget | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [deletingCategorieId, setDeletingCategorieId] = useState<string | null>(null)
+  const [deletingStock, setDeletingStock] = useState(false)
 
   async function load() {
     if (!stockId) return
@@ -117,6 +120,28 @@ export default function StockPage() {
     load()
   }
 
+  async function handleDeleteStock() {
+    if (!stock) return
+    const totalQuantite = produits.reduce((sum, p) => sum + p.quantite, 0)
+    const message =
+      categories.length === 0 && produits.length === 0
+        ? `Supprimer le stock "${stock.nom}" ? Il est vide. Cette action est irréversible.`
+        : `Supprimer le stock "${stock.nom}" ? Il contient ${categories.length} catégorie(s) et ` +
+          `${produits.length} produit(s) (${totalQuantite} unité(s) au total) qui seront ` +
+          `définitivement supprimés avec le stock. Cette action est irréversible.`
+    if (!window.confirm(message)) return
+
+    setError(null)
+    setDeletingStock(true)
+    const { error } = await supabase.from('stocks').delete().eq('id', stock.id)
+    setDeletingStock(false)
+    if (error) {
+      setError(`Impossible de supprimer ce stock : ${error.message}`)
+      return
+    }
+    navigate('/')
+  }
+
   if (loading) return <div className="page-loading">Chargement…</div>
   if (!stock) return <div className="page">Stock introuvable.</div>
 
@@ -134,6 +159,15 @@ export default function StockPage() {
               onClick={() => setRenameTarget({ table: 'stocks', id: stock.id, currentName: stock.nom })}
             >
               ✎ Renommer
+            </button>
+          )}
+          {peutSupprimer && (
+            <button
+              className="small-button rename-button"
+              disabled={deletingStock}
+              onClick={handleDeleteStock}
+            >
+              🗑 Supprimer le stock
             </button>
           )}
         </h1>

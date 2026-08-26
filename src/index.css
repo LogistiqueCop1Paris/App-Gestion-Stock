@@ -649,6 +649,21 @@ main {
   margin-bottom: 16px;
 }
 
+.password-display {
+  font-family: ui-monospace, monospace;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-align: center;
+  color: var(--text-h);
+  background: var(--bg);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  margin: 4px 0 20px;
+  user-select: all;
+}
+
 .field-hint {
   font-size: 13px;
   color: var(--accent-hover);

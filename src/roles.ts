@@ -10,9 +10,9 @@ export const ROLE_LABELS: Record<Role, string> = {
 
 export const ROLE_DESCRIPTIONS: Record<Role, string> = {
   respo_log:
-    'Peut tout faire et tout voir : changer le rôle de n\'importe quel compte, supprimer un compte, annuler un mouvement depuis l\'historique, renommer stocks/catégories/produits.',
+    'Peut tout faire et tout voir : changer le rôle de n\'importe quel compte, supprimer un compte ou un stock, annuler un mouvement depuis l\'historique, renommer stocks/catégories/produits.',
   respo_autres:
-    'Peut tout faire sauf transférer un produit entre stocks. Accès à l\'historique. Peut renommer stocks, catégories et produits.',
+    'Peut tout faire sauf transférer un produit entre stocks ou supprimer un stock. Accès à l\'historique. Peut renommer stocks, catégories et produits, et supprimer des catégories.',
   vsc: 'Peut uniquement faire des sorties de stock pour une distribution et enregistrer le reste ensuite. Accès à l\'historique en lecture.',
 }
 
@@ -25,6 +25,10 @@ export function peutTransferer(role: Role | undefined): boolean {
 }
 
 export function peutGererUtilisateurs(role: Role | undefined): boolean {
+  return role === 'respo_log'
+}
+
+export function peutSupprimerStock(role: Role | undefined): boolean {
   return role === 'respo_log'
 }
 

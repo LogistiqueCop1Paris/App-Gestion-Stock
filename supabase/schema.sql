@@ -915,8 +915,9 @@ create policy "stocks: création par respo" on public.stocks
   for insert with check (public.role_utilisateur() in ('respo_log', 'respo_autres'));
 drop policy if exists "stocks: suppression par admin" on public.stocks;
 drop policy if exists "stocks: suppression par respo" on public.stocks;
-create policy "stocks: suppression par respo" on public.stocks
-  for delete using (public.role_utilisateur() in ('respo_log', 'respo_autres'));
+drop policy if exists "stocks: suppression par respo_log" on public.stocks;
+create policy "stocks: suppression par respo_log" on public.stocks
+  for delete using (public.role_utilisateur() = 'respo_log');
 drop policy if exists "stocks: renommage par respo" on public.stocks;
 create policy "stocks: renommage par respo" on public.stocks
   for update using (public.role_utilisateur() in ('respo_log', 'respo_autres'));

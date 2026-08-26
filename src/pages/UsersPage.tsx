@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../auth/AuthContext'
 import type { Profile, Role } from '../types'
 import { ROLES, ROLE_LABELS, ROLE_DESCRIPTIONS } from '../roles'
+import SetPasswordModal from '../components/SetPasswordModal'
+import EditProfileModal from '../components/EditProfileModal'
 
 export default function UsersPage() {
   const { profile: monProfil } = useAuth()
@@ -11,6 +13,8 @@ export default function UsersPage() {
   const [error, setError] = useState<string | null>(null)
   const [savingId, setSavingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [passwordTarget, setPasswordTarget] = useState<Profile | null>(null)
+  const [editTarget, setEditTarget] = useState<Profile | null>(null)
 
   async function load() {
     setLoading(true)
@@ -123,7 +127,13 @@ export default function UsersPage() {
                   </select>
                   <p className="role-current-description">{ROLE_DESCRIPTIONS[p.role]}</p>
                 </td>
-                <td>
+                <td className="row-actions">
+                  <button className="small-button" onClick={() => setEditTarget(p)}>
+                    ✎ Éditer
+                  </button>
+                  <button className="small-button" onClick={() => setPasswordTarget(p)}>
+                    🔑 Mot de passe
+                  </button>
                   {p.id !== monProfil?.id && (
                     <button
                       className="small-button"
@@ -139,6 +149,21 @@ export default function UsersPage() {
           </tbody>
         </table>
         </div>
+      )}
+
+      {passwordTarget && (
+        <SetPasswordModal profile={passwordTarget} onClose={() => setPasswordTarget(null)} />
+      )}
+
+      {editTarget && (
+        <EditProfileModal
+          profile={editTarget}
+          onClose={() => setEditTarget(null)}
+          onDone={() => {
+            setEditTarget(null)
+            load()
+          }}
+        />
       )}
     </div>
   )
