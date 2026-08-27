@@ -1,0 +1,240 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[a4paper,margin=2.2cm]{geometry}
+\usepackage{xcolor}
+\usepackage{tgadventor} % titres — pendant de Raleway
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage{tgheros}    % corps de texte — pendant de Hanken Grotesk
+\usepackage{tgcursor}   % monospace — pendant de la police mono de l'appli
+\usepackage{tcolorbox}
+\tcbuselibrary{raster,skins,breakable}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{parskip}
+\usepackage{hyperref}
+
+% ---------- Palette (identique à l'appli) ----------
+\definecolor{accent}{HTML}{DF5F4D}
+\definecolor{accentdark}{HTML}{C94E3D}
+\definecolor{accentsoft}{HTML}{FBEAE7}
+\definecolor{good}{HTML}{3F7D4F}
+\definecolor{goodsoft}{HTML}{E9F2EB}
+\definecolor{warn}{HTML}{B3392A}
+\definecolor{warnsoft}{HTML}{F7E9E7}
+\definecolor{ink}{HTML}{221D17}
+\definecolor{muted}{HTML}{8A7F6F}
+\definecolor{border}{HTML}{ECDFC4}
+\definecolor{cardbg}{HTML}{FBF0DB}
+
+\color{ink}
+\hypersetup{colorlinks=true, urlcolor=accentdark, linkcolor=accentdark}
+
+% ---------- Titres de section ----------
+\titleformat{\section}
+  {\sffamily\fontfamily{qag}\selectfont\bfseries\Large\color{accent}}
+  {}{0pt}{}
+  [{\color{border}\titlerule[1.1pt]}]
+\titlespacing*{\section}{0pt}{22pt}{10pt}
+
+\titleformat{\subsection}
+  {\sffamily\fontfamily{qag}\selectfont\bfseries\large\color{ink}}
+  {}{0pt}{}
+\titlespacing*{\subsection}{0pt}{14pt}{4pt}
+
+% ---------- Petits utilitaires ----------
+\newcommand{\eyebrow}[1]{{\sffamily\fontfamily{qag}\selectfont\bfseries\small\color{accentdark}\MakeUppercase{#1}}\par\vspace{2pt}}
+
+\newtcbox{\flaggood}{on line, boxrule=0pt, colback=goodsoft, colframe=goodsoft,
+  colupper=good, arc=8pt, boxsep=1pt, left=8pt, right=8pt, top=4pt, bottom=4pt,
+  fontupper=\sffamily\fontfamily{qag}\selectfont\bfseries\small}
+\newtcbox{\flagwarn}{on line, boxrule=0pt, colback=warnsoft, colframe=warnsoft,
+  colupper=warn, arc=8pt, boxsep=1pt, left=8pt, right=8pt, top=4pt, bottom=4pt,
+  fontupper=\sffamily\fontfamily{qag}\selectfont\bfseries\small}
+
+\newtcolorbox{notebox}{
+  colback=accentsoft, colframe=accent, boxrule=0.8pt, arc=6pt,
+  left=12pt, right=12pt, top=8pt, bottom=8pt
+}
+
+\newtcolorbox{technicalbox}{
+  colback=white, colframe=muted, boxrule=1.1pt, arc=6pt,
+  frame style={dash pattern=on 5pt off 4pt},
+  left=14pt, right=14pt, top=10pt, bottom=10pt
+}
+
+\newtcolorbox{sqlbox}{
+  colback=ink, colframe=ink, arc=4pt,
+  left=12pt, right=12pt, top=6pt, bottom=6pt,
+  fontupper=\ttfamily\small\color{cardbg}
+}
+
+\newtcolorbox{rolecard}[1][]{
+  colback=white, colframe=border, boxrule=0.8pt, arc=8pt,
+  left=12pt, right=12pt, top=10pt, bottom=10pt,
+  valign=top, #1
+}
+
+\setlist[itemize]{label={\color{accent}\textbullet}, leftmargin=1.4em, itemsep=2pt, topsep=2pt}
+\setlist[enumerate]{leftmargin=1.6em, itemsep=4pt, topsep=2pt}
+
+\pagestyle{empty}
+
+\begin{document}
+
+% ---------- En-tête ----------
+\begin{center}
+\begin{minipage}{\textwidth}
+{\sffamily\fontfamily{qag}\selectfont\bfseries\huge\color{accent}Fonctionnement de l'appli}\\[3pt]
+{\sffamily\itshape\small\color{muted}Mise à jour du 27/08/2026}\\[5pt]
+{\sffamily\small Accéder à l'appli : \url{https://appgestionstock.vercel.app/}}
+\end{minipage}
+\end{center}
+\vspace{2pt}
+{\color{border}\hrule height 1.4pt}
+\vspace{8pt}
+
+% ---------- Rôles ----------
+\section{3 rôles distincts}
+
+\begin{tcbraster}[raster columns=3, raster equal height=rows, raster column skip=8pt]
+\begin{rolecard}
+{\ttfamily\footnotesize\color{muted}Lecture + distributions}\\[6pt]
+{\sffamily\fontfamily{qag}\selectfont\bfseries VSC}\\[6pt]
+{\small Ne peut pas modifier les éléments déjà présents dans les stocks. Ne peut pas ajouter ou retirer des produits dans le stock. Peut simplement faire des débuts de distribs et les clôturer.}\\[6pt]
+{\small A un accès en lecture à l'historique.}
+\end{rolecard}
+\begin{rolecard}
+{\ttfamily\footnotesize\color{muted}Gestion des stocks}\\[6pt]
+{\sffamily\fontfamily{qag}\selectfont\bfseries Respo Autres}\\[6pt]
+{\small Peut modifier les produits, en ajouter, en retirer. Peut créer et supprimer des catégories dans les stocks.}\\[6pt]
+{\small Iel peut annuler des actions via l'historique. Ne peut pas transférer d'un stock à un autre.}
+\end{rolecard}
+\begin{rolecard}[colframe=accent, boxrule=1.4pt]
+{\ttfamily\footnotesize\color{muted}Administration}\\[6pt]
+{\sffamily\fontfamily{qag}\selectfont\bfseries Respo Log}\\[6pt]
+{\small Peut tout faire, rôle d'admin. Peut faire des transferts entre stocks.}\\[6pt]
+{\small Dans l'onglet Utilisateurs peut modifier les NOMS, prénoms, mails et rôles. Peut également supprimer des comptes.}
+\end{rolecard}
+\end{tcbraster}
+
+% ---------- Création de compte ----------
+\section{Création d'un compte}
+\begin{notebox}
+Pour avoir accès à l'appli, vous devez vous créer un compte personnel en renseignant votre
+NOM, prénom et email. Aucune de ces infos ne sera utilisée en dehors de l'appli — elles ne
+sont pas transmises.
+
+\vspace{4pt}
+Si vous quittez l'asso, ou que pour n'importe quelle autre raison vous souhaitez que votre
+compte soit supprimé, merci de contacter un Respo Log.
+\end{notebox}
+
+\newpage
+% ---------- Stocks ----------
+\section{Stocks}
+\eyebrow{Navigation}
+Permet de visualiser les stocks. Dans chaque stock, on retrouve la liste des produits ajoutés.
+
+\subsection*{Quand on ajoute un produit, on précise :}
+\begin{itemize}
+  \item la \textbf{catégorie} — si la correspondante n'existe pas, on peut en créer une
+  \item le \textbf{nom} du produit — même principe que pour la catégorie
+  \item la \textbf{quantité} (nombre entier)
+  \item la \textbf{source} — même principe que pour la catégorie et le produit
+  \item la \textbf{date de péremption} (optionnel, mais préféré)
+  \item \textbf{commentaire} (optionnel)
+\end{itemize}
+
+\vspace{2pt}
+Si un produit existe déjà, il sera dans la liste déroulante, mais il est aussi possible de le
+chercher directement dans le tableau.
+
+\vspace{6pt}
+\flaggood{Action réversible}
+
+\vspace{8pt}
+\noindent Lorsqu'on retire une quantité d'un produit et que celui-ci tombe à zéro, il est
+\textbf{supprimé}. Si un stock est supprimé, tout ce qu'il contient l'est aussi.
+
+% ---------- Distribution ----------
+\section{Distribution}
+\eyebrow{Navigation}
+
+Lorsqu'une distribution débute, vous pouvez choisir les produits qui vont sortir du stock.
+Évidemment, vous ne pouvez pas sortir plus de quantité d'un produit qu'il n'y en a déjà dans
+ce stock.
+
+\vspace{4pt}
+À la fin de la distribution, vous remplissez la quantité de chaque produit restant. Mettez 0
+s'il n'en reste plus.
+
+\vspace{4pt}
+Il est impossible de commencer une nouvelle distribution dans ce stock si la précédente n'a
+pas été clôturée. Vous pouvez ajouter un commentaire en sortie et en clôture de distrib.
+
+\vspace{6pt}
+\flagwarn{Action NON réversible pour l'instant}
+
+% ---------- Transferts ----------
+\section{Transferts}
+\eyebrow{Navigation · Respo Log uniquement}
+
+Vous pouvez faire des transferts entre les différents stocks. Quand vous cliquez sur le
+bouton, vous pouvez choisir la quantité de chaque produit présente dans le stock de départ.
+Laissez vide si un produit n'est pas transféré.
+
+\vspace{6pt}
+\flagwarn{Action NON réversible pour l'instant}
+
+\newpage
+% ---------- Statistiques ----------
+\section{Statistiques}
+\eyebrow{Navigation}
+
+Un suivi des stats de distribution a été intégré. On peut y voir les chiffres qui ont été
+faits chaque mois, par lieu et par année.
+
+\vspace{4pt}
+En cliquant sur un mois, il est possible d'avoir en bas le détail de ce mois-ci :
+\begin{itemize}
+  \item le nombre de distribs
+  \item le total de paniers
+  \item le nombre de paniers en moyenne (parce que pourquoi pas)
+  \item et le détail de chaque date de distrib
+\end{itemize}
+
+% ---------- Vider l'historique ----------
+\section{Opération technique}
+\eyebrow{Vider l'historique}
+\begin{technicalbox}
+Si jamais vous souhaitez vider l'historique :
+\begin{enumerate}
+  \item Aller sur \texttt{supabase.com}, ouvrir le projet \textbf{Gestion Stock Paris}.
+  \item Dans le \textbf{SQL Editor}, ouvrir un nouveau fichier, coller cette commande :
+\end{enumerate}
+
+\begin{sqlbox}
+truncate table public.mouvements;
+\end{sqlbox}
+
+\begin{enumerate}[start=3]
+  \item Cliquer sur \textbf{Run} ou appuyer sur \texttt{Ctrl} + \texttt{Entrée}.
+  \item Penser à fermer le fichier dans lequel la commande a été exécutée.
+\end{enumerate}
+
+\vspace{4pt}
+{\small\bfseries\color{warn}Cette action est irréversible.}
+\end{technicalbox}
+
+% ---------- Pied de page ----------
+\vspace{18pt}
+{\color{border}\hrule height 1.4pt}
+\vspace{10pt}
+\noindent\small Si vous avez des suggestions, des demandes ou que vous rencontrez un
+problème, merci de contacter\\
+{\sffamily\fontfamily{qag}\selectfont\bfseries Samuel LEGER}.
+
+\end{document}

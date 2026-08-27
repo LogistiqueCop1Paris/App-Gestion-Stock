@@ -13,6 +13,13 @@ dist-ssr
 *.local
 .env
 
+# Fichiers générés par la compilation LaTeX (docs/*.tex)
+*.aux
+*.out
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
